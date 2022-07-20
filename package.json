@@ -1,0 +1,11 @@
+{
+  "name": "js-data-analytics-website-a-b",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "start"
+  },
+  "author": "mori_maxw",
+  "license": "ISC"
+}
