@@ -1,5 +1,5 @@
 const fs = require("fs/promises");
-const { tidy, groupBy, arrange, desc, asc } = require("@tidyjs/tidy");
+const { tidy, groupBy, arrange, desc, asc, distinct, select, replaceNully, filter, summarize, sum, mean, median } = require("@tidyjs/tidy");
 
 const labels = [
   "user_id",
@@ -28,11 +28,57 @@ const readCSV = async (filePath, labels) => {
 
 const main = async () => {
   const data = await readCSV(`data/data.csv`, labels);
-  console.log(data[0]);
+  console.log(data.length);
 
   // now clean the data with tidy.js
-  const sorted = tidy(data, arrange(desc('user_id')));
-  console.log(sorted[0]);
+  const cleaned = tidy(
+    data, 
+    select(['user_id', 'group', 'landing_page', 'converted']),
+    replaceNully({ group: 'control', 'landing_page': 'old_page', 'converted': 0}),
+    arrange(desc('user_id')),
+    distinct(['user_id']),
+    filter((d) => !(d.user_id === undefined || d.user_id === null || d.user_id === '')),
+  );
+
+  console.log(cleaned.length);
+  console.log(cleaned[0]);
+
+  // now calculate some aggregate statistics to get an idea about the data
+  const summary = tidy(
+    cleaned,
+    summarize({
+      observationCount: (items) => items.length,
+      convertedAmount: sum('converted'),
+      percentageConverted: mean((item) => parseInt(item.converted)),
+    }),
+  );
+
+  console.log(summary);
+
+  const averageOld = tidy(
+    cleaned,
+    filter((item) => item.group === 'control'),
+    summarize({
+      observationCount: (items) => items.length,
+      convertedAmount: sum('converted'),
+      percentageConverted: mean((item) => parseInt(item.converted)),
+    }),
+  );
+
+  console.log(averageOld);
+
+  const averageNew = tidy(
+    cleaned,
+    filter((item) => item.group === 'treatment'),
+    summarize({
+      observationCount: (items) => items.length,
+      convertedAmount: sum('converted'),
+      percentageConverted: mean((item) => parseInt(item.converted)),
+    }),
+  );
+
+  console.log(averageNew);
+
 }
 
 main();
